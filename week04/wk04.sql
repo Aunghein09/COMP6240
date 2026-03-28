@@ -134,6 +134,8 @@ GROUP BY dno,fname,lname)s2
 WHERE s2.sum_hours = (SELECT max(s1.sum_hours) FROM (SELECT * from employee NATURAL JOIN works_on w INNER JOIN project p ON p.pnumber=w.pno) c
 WHERE dno!=dnum
 GROUP BY dno,fname,lname)s1);
+
+
 SELECT s2.fname, s2.lname
 FROM (
     SELECT e.fname, e.lname, SUM(w.hours) AS sum_hours, e.dno
@@ -155,3 +157,17 @@ WHERE s2.sum_hours = (
     ) s1
 );
 
+WITH emp_hours AS (
+    SELECT e.fname, e.lname, e.dno, SUM(w.hours) AS sum_hours
+    FROM employee e
+    JOIN works_on w ON e.ssn = w.ssn
+    JOIN project p ON w.pno = p.pnumber
+    WHERE e.dno <> p.dnum
+    GROUP BY e.dno, e.fname, e.lname
+)
+SELECT fname, lname
+FROM emp_hours
+WHERE sum_hours = (
+    SELECT MAX(sum_hours)
+    FROM emp_hours
+);
