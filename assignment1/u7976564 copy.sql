@@ -26,7 +26,7 @@ WHERE
 
 -- Q3
 SELECT 
-    DISTINCT title,production_year
+    title,production_year
 FROM 
     movie
 WHERE
@@ -93,21 +93,35 @@ FROM
     USING (id);
 
 -- Q6
-(SELECT d.id AS director_id
-FROM director d LEFT JOIN crew c USING (title, production_year)
-GROUP BY title, production_year, d.id
-HAVING COUNT(DISTINCT c.id) < 3)
-INTERSECT
-(SELECT
-    DISTINCT id AS director_id
-FROM
-    MOVIE_AWARD JOIN DIRECTOR USING (title, production_year)
-WHERE
-    result ILIKE '%won%');
+-- (SELECT d.id AS director_id
+-- FROM director d LEFT JOIN crew c USING (title, production_year)
+-- GROUP BY title, production_year, d.id
+-- HAVING COUNT(DISTINCT c.id) < 3)
+-- INTERSECT
+-- (SELECT
+--     DISTINCT id AS director_id
+-- FROM
+--     MOVIE_AWARD JOIN DIRECTOR USING (title, production_year)
+-- WHERE
+--     result ILIKE '%won%');
+SELECT DISTINCT d.id AS director_id
+FROM DIRECTOR d
+JOIN MOVIE_AWARD ma
+  ON d.title = ma.title
+ AND d.production_year = ma.production_year
+WHERE ma.result ILIKE '%won%'
+  AND (
+      SELECT COUNT(DISTINCT c.id)
+      FROM CREW c
+      WHERE c.title = d.title
+        AND c.production_year = d.production_year
+  ) < 3;
 
 -- Q7
-SELECT DISTINCT first_name, last_name
-FROM director JOIN person USING (id)
+SELECT 
+    DISTINCT first_name, last_name
+FROM 
+    director JOIN person USING (id)
 WHERE production_year > 1999;
 
 
@@ -129,13 +143,21 @@ WHERE production_year = year_of_award;
 -- FROM person JOIN co_worked_movies ON person.id = co_worked_movies.crew_id_1
 -- WHERE co_worked_movies_count = (SELECT MAX(co_worked_movies_count) FROM co_worked_movies);
 WITH cocrew_counts AS (
-    SELECT c1.id, COUNT(DISTINCT c2.id) AS cocrew_count
-    FROM crew c1
-    JOIN crew c2 USING (title, production_year)
-    WHERE c1.id <> c2.id
-    GROUP BY c1.id
+    SELECT 
+        c1.id, COUNT(DISTINCT c2.id) AS cocrew_count
+    FROM 
+        crew c1 LEFT JOIN crew c2 
+            USING (title, production_year)
+    WHERE 
+        c1.id <> c2.id
+    GROUP BY 
+        c1.id
 )
-SELECT DISTINCT p.first_name, p.last_name
-FROM person p
-JOIN cocrew_counts cc USING (id)
-WHERE cc.cocrew_count = (SELECT MAX(cocrew_count) FROM cocrew_counts);
+SELECT 
+    DISTINCT p.first_name, p.last_name
+FROM 
+    person p
+JOIN 
+    cocrew_counts cc USING (id)
+WHERE 
+    cc.cocrew_count = (SELECT MAX(cocrew_count) FROM cocrew_counts);
